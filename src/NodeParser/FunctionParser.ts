@@ -14,7 +14,7 @@ import { DefinitionType } from "../Type/DefinitionType";
 export class FunctionParser implements SubNodeParser {
     constructor(protected childNodeParser: NodeParser) {}
 
-    public supportsNode(node: ts.ArrowFunction | ts.FunctionDeclaration | ts.FunctionExpression): boolean {
+    public supportsNode(node: ts.ArrowFunction | ts.FunctionDeclaration | ts.FunctionExpression | ts.MethodDeclaration): boolean {
         if (node.kind === ts.SyntaxKind.FunctionDeclaration) {
             // Functions needs a name for us to include it in the json schema
             return Boolean(node.name);
@@ -25,12 +25,20 @@ export class FunctionParser implements SubNodeParser {
             ts.isVariableDeclaration(node.parent)
         );
     }
-    public createType(node: ts.FunctionDeclaration | ts.ArrowFunction, context: Context): DefinitionType {
+    public createType(node: ts.FunctionDeclaration | ts.ArrowFunction | ts.MethodDeclaration, context: Context): DefinitionType {
+        return new DefinitionType(this.getTypeName(node), this.createNamedArguments(node, context));
+    }
+
+    public createTypeAsObjectProperty(node: ts.FunctionDeclaration | ts.ArrowFunction | ts.MethodDeclaration, context: Context): ObjectProperty {
+        return new ObjectProperty(this.getTypeName(node), this.createNamedArguments(node, context), !node.questionToken)
+    }
+
+    protected createNamedArguments(node: ts.ArrowFunction | ts.FunctionDeclaration | ts.FunctionExpression | ts.MethodDeclaration, context: Context): ObjectType {
         const parameterTypes = node.parameters.map((parameter) => {
             return this.childNodeParser.createType(parameter, context);
         });
 
-        const namedArguments = new ObjectType(
+        return new ObjectType(
             `object-${getKey(node, context)}`,
             [],
             parameterTypes.map((parameterType, index) => {
@@ -41,10 +49,9 @@ export class FunctionParser implements SubNodeParser {
             }),
             false
         );
-        return new DefinitionType(this.getTypeName(node, context), namedArguments);
     }
 
-    public getTypeName(node: ts.FunctionDeclaration | ts.ArrowFunction, context: Context): string {
+    public getTypeName(node: ts.FunctionDeclaration | ts.ArrowFunction | ts.MethodDeclaration): string {
         if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
             const parent = node.parent;
             if (ts.isVariableDeclaration(parent)) {

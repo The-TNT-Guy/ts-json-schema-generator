@@ -1,14 +1,15 @@
-import ts, { PropertyName } from "typescript";
-import { Context, NodeParser } from "../NodeParser";
-import { SubNodeParser } from "../SubNodeParser";
-import { ArrayType } from "../Type/ArrayType";
-import { BaseType } from "../Type/BaseType";
-import { NeverType } from "../Type/NeverType";
-import { ObjectProperty, ObjectType } from "../Type/ObjectType";
-import { ReferenceType } from "../Type/ReferenceType";
-import { isNodeHidden } from "../Utils/isHidden";
-import { isPublic, isStatic } from "../Utils/modifiers";
-import { getKey } from "../Utils/nodeKey";
+import ts, {PropertyName} from "typescript";
+import {Context, NodeParser} from "../NodeParser";
+import {SubNodeParser} from "../SubNodeParser";
+import {ArrayType} from "../Type/ArrayType";
+import {BaseType} from "../Type/BaseType";
+import {NeverType} from "../Type/NeverType";
+import {ObjectProperty, ObjectType} from "../Type/ObjectType";
+import {ReferenceType} from "../Type/ReferenceType";
+import {isNodeHidden} from "../Utils/isHidden";
+import {isPublic, isStatic} from "../Utils/modifiers";
+import {getKey} from "../Utils/nodeKey";
+import {FunctionParser} from "./FunctionParser";
 
 export class InterfaceAndClassNodeParser implements SubNodeParser {
     public constructor(
@@ -116,16 +117,18 @@ export class InterfaceAndClassNodeParser implements SubNodeParser {
                     members.push(...params);
                 } else if (ts.isPropertySignature(member) || ts.isPropertyDeclaration(member)) {
                     members.push(member);
+                } else if (ts.isMethodDeclaration(member)) {
+                    members.push(member)
                 }
                 return members;
-            }, [] as (ts.PropertyDeclaration | ts.PropertySignature | ts.ParameterPropertyDeclaration)[])
+            }, [] as (ts.PropertyDeclaration | ts.PropertySignature | ts.ParameterPropertyDeclaration | ts.MethodDeclaration)[])
             .filter((member) => isPublic(member) && !isStatic(member) && !isNodeHidden(member))
             .reduce((entries, member) => {
                 let memberType: ts.Node | undefined = member.type;
 
                 // Use the type checker if the member has no explicit type
                 // Ignore members without an initializer. They have no useful type.
-                if (memberType === undefined && member.initializer !== undefined) {
+                if (memberType === undefined && (ts.isMethodDeclaration(member) || member.initializer !== undefined)) {
                     const type = this.typeChecker.getTypeAtLocation(member);
                     memberType = this.typeChecker.typeToTypeNode(type, node, ts.NodeBuilderFlags.NoTruncation);
                 }
@@ -136,12 +139,18 @@ export class InterfaceAndClassNodeParser implements SubNodeParser {
                 return entries;
             }, [])
             .map(
-                ({ member, memberType }) =>
-                    new ObjectProperty(
-                        this.getPropertyName(member.name),
-                        this.childNodeParser.createType(memberType, context),
-                        !member.questionToken
-                    )
+                ({member, memberType}) => {
+                    if (ts.isMethodDeclaration(member)) {
+                        const funcParser = new FunctionParser(this.childNodeParser)
+                        return funcParser.createTypeAsObjectProperty(member, context)
+                    } else {
+                        return new ObjectProperty(
+                            this.getPropertyName(member.name),
+                            this.childNodeParser.createType(memberType, context),
+                            !member.questionToken
+                        )
+                    }
+                }
             )
             .filter((prop) => {
                 if (prop.isRequired() && prop.getType() instanceof NeverType) {
