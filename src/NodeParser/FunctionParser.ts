@@ -58,7 +58,7 @@ export class FunctionParser implements SubNodeParser {
                 return `NamedParameters<typeof ${parent.name.getText()}>`;
             }
         }
-        if (ts.isFunctionDeclaration(node)) {
+        if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
             return `NamedParameters<typeof ${node.name!.getText()}>`;
         }
         throw new Error("Expected to find a name for function but couldn't");
