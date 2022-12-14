@@ -148,7 +148,8 @@ export function createParser(program: ts.Program, config: Config, augmentor?: Pa
                         new InterfaceAndClassNodeParser(
                             typeChecker,
                             withJsDoc(chainNodeParser),
-                            mergedConfig.additionalProperties
+                            mergedConfig.additionalProperties,
+                            mergedConfig.ignoreClassInheritance,
                         )
                     )
                 )

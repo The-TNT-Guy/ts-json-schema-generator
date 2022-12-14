@@ -39,6 +39,11 @@ const args = new Command()
         "Allow additional properties for objects with no index signature (default: false)",
         false
     )
+    .option(
+        "--ignoreClassInheritance",
+        "Ignores all inherited methods and parameters in classes",
+        false
+    )
     .version(pkg.version)
     .parse(process.argv)
     .opts();
@@ -59,6 +64,7 @@ const config: Config = {
     encodeRefs: args.refEncode,
     extraTags: args.validationKeywords,
     additionalProperties: args.additionalProperties,
+    ignoreClassInheritance: args.ignoreClassInheritance,
 };
 
 try {

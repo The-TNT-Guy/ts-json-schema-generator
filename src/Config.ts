@@ -13,6 +13,7 @@ export interface Config {
     encodeRefs?: boolean;
     extraTags?: string[];
     additionalProperties?: boolean;
+    ignoreClassInheritance?: boolean;
 }
 
 export const DEFAULT_CONFIG: Omit<Required<Config>, "path" | "type" | "schemaId" | "tsconfig"> = {
@@ -26,4 +27,5 @@ export const DEFAULT_CONFIG: Omit<Required<Config>, "path" | "type" | "schemaId"
     minify: false,
     extraTags: [],
     additionalProperties: false,
+    ignoreClassInheritance: false,
 };

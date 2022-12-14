@@ -15,7 +15,8 @@ export class InterfaceAndClassNodeParser implements SubNodeParser {
     public constructor(
         protected typeChecker: ts.TypeChecker,
         protected childNodeParser: NodeParser,
-        protected readonly additionalProperties: boolean
+        protected readonly additionalProperties: boolean,
+        protected readonly ignoreClassInheritance: boolean
     ) {}
 
     public supportsNode(node: ts.InterfaceDeclaration | ts.ClassDeclaration): boolean {
@@ -61,7 +62,7 @@ export class InterfaceAndClassNodeParser implements SubNodeParser {
             }
         }
 
-        return new ObjectType(id, this.getBaseTypes(node, context), properties, additionalProperties);
+        return new ObjectType(id, !this.ignoreClassInheritance ? this.getBaseTypes(node, context) : [], properties, additionalProperties);
     }
 
     /**
